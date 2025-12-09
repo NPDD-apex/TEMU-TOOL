@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Farm OS v25.1</title>
+<style>
+/* --- 1. 全局变量 --- */
+:root {
+    --primary: #007aff;       
+    --success: #34c759;       
+    --danger: #ff3b30;        
+    --warning: #ff9500;       
+    --bg-body: #f2f2f7;       
+    --bg-card: #ffffff;       
+    --bg-input: #f5f5f7;      
+    --text-main: #1c1c1e;     
+    --text-sub: #8e8e93;      
+    --border: #e5e5ea;        
+    --icon-bg: #e0eaff;       
+    --icon-text: #007aff;     
+    --radius: 12px;
+    --drawer-bg: rgba(255, 255, 255, 0.95);
+    --item-active: #f2f2f7;
+    --disabled: #e5e5ea;
+}
+
+body.dark-mode {
+    --primary: #0a84ff;       
+    --bg-body: #000000;       
+    --bg-card: #1c1c1e;       
+    --bg-input: #2c2c2e;      
+    --text-main: #f5f5f7;     
+    --text-sub: #8e8e93;      
+    --border: #38383a;        
+    --icon-bg: #2c2c2e;
+    --icon-text: #0a84ff;
+    --drawer-bg: rgba(28, 28, 30, 0.95);
+    --item-active: #2c2c2e;
+    --disabled: #3a3a3c;
+}
+
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    margin: 0; padding: 0; padding-bottom: 160px; 
+    overflow-x: hidden; width: 100%;
+}
+
+.view-section { display: none; opacity: 0; transition: opacity 0.3s; }
+.view-section.active { display: block; opacity: 1; }
+
+/* --- 2. 导航栏 --- */
+.navbar {
+    background: var(--bg-card); 
+    padding: 10px 15px; padding-top: max(10px, env(safe-area-inset-top));
+    display: flex; justify-content: space-between; align-items: center;
+    position: sticky; top: 0; z-index: 100; border-bottom: 1px solid var(--border);
+    height: 60px;
+}
+.app-title { font-weight: 800; font-size: 18px; }
+.menu-icon { font-size: 24px; color: var(--primary); cursor: pointer; padding: 5px; }
+
+/* --- 3. 侧边菜单 --- */
+.drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000; display:none; backdrop-filter: blur(3px); transition: opacity 0.3s; }
+.drawer { 
+    position: fixed; top: 0; bottom: 0; left: 0; width: 280px; 
+    background: var(--drawer-bg); backdrop-filter: blur(20px);
+    z-index: 2001; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
+    padding: 20px; padding-top: max(20px, env(safe-area-inset-top));
+    box-shadow: 5px 0 25px rgba(0,0,0,0.15); display: flex; flex-direction: column;
+}
+.drawer.open { transform: translateX(0); }
+.drawer-overlay.open { display: block; }
+.drawer-item { padding: 14px 12px; margin-bottom: 8px; border-radius: 10px; cursor: pointer; font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 10px; transition: all 0.2s; color: var(--text-main); }
+.drawer-item:active { transform: scale(0.96); background-color: var(--item-active); }
+.drawer-item.active-page { background-color: var(--item-active); color: var(--primary); }
+
+/* 主题控制台 */
+.theme-panel { background: var(--bg-input); padding: 12px; border-radius: 12px; margin-bottom: 20px; }
+.segment-control { display: flex; background: var(--border); padding: 3px; border-radius: 8px; width: 100%; margin-bottom: 10px; }
+.segment-opt { flex: 1; text-align: center; padding: 6px; font-size: 13px; font-weight: 600; border-radius: 6px; cursor: pointer; color: var(--text-sub); transition: 0.2s; }
+.segment-opt.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.segment-opt.disabled { opacity: 0.4; pointer-events: none; }
+
+/* --- 4. 核心组件 --- */
+.container { padding: 15px; max-width: 600px; margin: 0 auto; }
+.card { background: var(--bg-card); border-radius: var(--radius); padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); transition: background 0.3s; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 13px; font-weight: 700; color: var(--text-sub); letter-spacing: 0.5px; text-transform: uppercase; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+/* 输入框 */
+.input-box { background: var(--bg-input); border-radius: 10px; padding: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid transparent; }
+.input-box:focus-within { border-color: var(--primary); background: var(--bg-card); }
+.icon-badge { width: 28px; height: 28px; border-radius: 8px; background: var(--icon-bg); color: var(--icon-text); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
+.input-content { flex: 1; display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+.input-label { font-size: 11px; color: var(--text-sub); margin-bottom: 2px; white-space: nowrap; }
+.val-input { border: none; background: transparent; width: 100%; font-size: 16px; font-weight: 600; color: var(--text-main); padding: 0; outline: none; -moz-appearance: textfield; }
+.currency-select { font-size: 16px; font-weight: 600; border: none; background: transparent; color: var(--primary); outline: none; width: 100%; }
+
+/* 双向联动 */
+.dual-wrapper { display: flex; gap: 12px; margin-bottom: 12px; }
+.dual-card { flex: 1; background: var(--bg-input); padding: 12px; border-radius: 12px; border: 2px solid transparent; opacity: 0.7; transition: 0.2s; }
+.dual-card.active { border-color: var(--primary); background: var(--bg-card); opacity: 1; box-shadow: 0 4px 12px rgba(0,122,255,0.15); transform: translateY(-2px); }
+.dual-title { font-size: 11px; color: var(--text-sub); font-weight: 600; display:flex; justify-content:space-between; margin-bottom:4px; }
+.dual-val { width: 100%; font-size: 24px; font-weight: 800; border: none; background: transparent; color: var(--text-main); outline: none; padding: 0; }
+.dual-card.active .dual-val { color: var(--primary); }
+
+/* --- 5. 历史记录 (New) --- */
+.history-item { 
+    background: var(--bg-card); border-radius: 12px; padding: 15px; margin-bottom: 10px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03); cursor: pointer; transition: 0.2s; position: relative;
+}
+.history-item:active { transform: scale(0.98); background: var(--bg-input); }
+.hist-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.hist-name { font-size: 15px; font-weight: 700; color: var(--text-main); }
+.hist-date { font-size: 11px; color: var(--text-sub); }
+.hist-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; color: var(--text-sub); gap: 5px; }
+.hist-val { font-weight: 600; color: var(--text-main); }
+.hist-profit { font-weight: 800; font-size: 14px; text-align: right; }
+.btn-del { 
+    position: absolute; top: 15px; right: 15px; 
+    color: var(--text-sub); padding: 5px; z-index: 2; font-size:14px;
+}
+.btn-del:hover { color: var(--danger); }
+
+/* 保存条 */
+.save-bar {
+    display: flex; gap: 10px; align-items: center; margin-bottom: 15px;
+}
+.save-input {
+    flex: 1; padding: 12px; border-radius: 10px; border: 1px solid transparent; 
+    background: var(--bg-input); font-size: 15px; outline: none; color: var(--text-main);
+}
+.save-input:focus { background: var(--bg-card); border-color: var(--primary); }
+.save-btn {
+    background: var(--primary); color: white; border: none; padding: 12px 20px;
+    border-radius: 10px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.save-btn:active { opacity: 0.8; transform: scale(0.95); }
+
+/* --- 6. 底部栏 --- */
+.bottom-bar {
+    position: fixed; bottom: 0; left: 0; width: 100%;
+    background: var(--bg-card); border-top: 1px solid var(--border);
+    padding: 12px 20px; box-sizing: border-box;
+    display: flex; justify-content: space-between; align-items: center;
+    z-index: 100; padding-bottom: max(12px, env(safe-area-inset-bottom));
+}
+.profit-val { font-size: 24px; font-weight: 800; line-height: 1; }
+.profit-label { font-size: 11px; color: var(--text-sub); margin-bottom: 4px; }
+.margin-badge { font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 4px; background: #eee; margin-left: 5px; vertical-align: middle;}
+
+/* 更多设置 */
+.details-box { background: var(--bg-input); padding: 12px; border-radius: 8px; margin-top: 12px; font-size: 12px; color: var(--text-sub); }
+.d-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+
+/* 零件卡片 */
+.part-card { background: var(--bg-input); border-radius: 10px; padding: 12px; margin-bottom: 10px; border-left: 3px solid var(--primary); }
+.add-btn { width: 100%; background: var(--icon-bg); color: var(--primary); border: 1px dashed var(--primary); padding: 12px; border-radius: 10px; font-weight: 600; font-size: 14px; margin-top: 5px; }
+
+</style>
+</head>
+<body>
+
+<div class="navbar">
+    <div class="menu-icon" onclick="toggleDrawer()">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+    </div>
+    <div class="app-title" id="pageTitle">Farm OS v25.1</div>
+    <div style="font-size:12px; font-weight:600; color:var(--primary)" onclick="fetchRates()" id="rateBtn">↻ 汇率</div>
+</div>
+
+<div class="drawer-overlay" onclick="toggleDrawer()"></div>
+<div class="drawer">
+    <h3 style="margin: 10px 0 20px 5px; font-size: 22px;">设置</h3>
+    <div class="drawer-item active-page" id="menu-calc" onclick="switchPage('calc')"><span>🧮 成本核算</span></div>
+    <div class="drawer-item" id="menu-hist" onclick="switchPage('hist')"><span>📜 历史记录</span></div>
+    <div class="drawer-item" id="menu-conv" onclick="switchPage('conv')"><span>📏 单位换算</span></div>
+    <div style="margin: 20px 5px 10px 5px; font-size: 12px; color: var(--text-sub); font-weight:bold;">外观 (THEME)</div>
+    <div class="theme-panel">
+        <div class="segment-control">
+            <div class="segment-opt active" id="mode-auto" onclick="setThemeMode('auto')">自动 (Auto)</div>
+            <div class="segment-opt" id="mode-manual" onclick="setThemeMode('manual')">手动 (Manual)</div>
+        </div>
+        <div class="segment-control" id="color-ctrl">
+            <div class="segment-opt disabled" id="color-light" onclick="setManualColor('light')">☀️ 浅色</div>
+            <div class="segment-opt disabled" id="color-dark" onclick="setManualColor('dark')">🌑 深色</div>
+        </div>
+        <div style="font-size:10px; color:var(--text-sub); margin-top:5px; text-align:center;" id="theme-desc">19:00-06:00 自动开启深色</div>
+    </div>
+    <div style="margin-top:auto;"></div>
+    <div class="drawer-item" onclick="toggleLang()" style="border-top:1px solid var(--border); border-radius:0;"><span>🌐 切换语言 (CN/EN)</span></div>
+    <div style="font-size:11px; color:#999; text-align:center; padding:15px;">v25.1 Storage Fix</div>
+</div>
+
+<div id="page-calc" class="container view-section active">
+    
+    <div class="save-bar">
+        <input type="text" id="prod_name" class="save-input" placeholder="输入产品名称 (用于存档)">
+        <button class="save-btn" onclick="saveRecord()">💾 保存</button>
+    </div>
+
+    <div class="card">
+        <div class="section-header">Target Market</div>
+        <div class="input-box">
+            <div class="icon-badge">C</div>
+            <div class="input-content">
+                <div class="input-label" data-i18n="country">目标国家/币种</div>
+                <select class="currency-select" id="cur" onchange="changeCurrency()">
+                    <option value="USD">🇺🇸 USD (美元)</option><option value="EUR">🇪🇺 EUR (欧元)</option>
+                    <option value="GBP">🇬🇧 GBP (英镑)</option><option value="CAD">🇨🇦 CAD (加币)</option>
+                    <option value="AUD">🇦🇺 AUD (澳元)</option><option value="JPY">🇯🇵 JPY (日元)</option>
+                    <option value="KRW">🇰🇷 KRW (韩元)</option><option value="MXN">🇲🇽 MXN (比索)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="dual-wrapper">
+        <div class="dual-card active" id="card-market" onclick="activateCard('market')">
+            <div class="dual-title"><span>P</span> <span id="sym_market">$</span></div>
+            <input type="number" id="inp_market" class="dual-val" placeholder="0" oninput="calcFromMarket()">
+            <div class="input-label" style="margin-top:4px" data-i18n="market_p">前端售价</div>
+        </div>
+        <div class="dual-card" id="card-supply" onclick="activateCard('supply')">
+            <div class="dual-title"><span>S</span> <span>¥</span></div>
+            <input type="number" id="inp_supply" class="dual-val" placeholder="0" oninput="calcFromSupply()">
+            <div class="input-label" style="margin-top:4px" data-i18n="supply_p">供货价</div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-header">Marketing</div>
+        <div class="grid-2">
+            <div class="input-box">
+                <div class="icon-badge">D</div>
+                <div class="input-content">
+                    <div class="input-label" data-i18n="discount">折扣 (折)</div>
+                    <input type="number" class="val-input" id="discount_zhe" value="9" placeholder="10" oninput="reCalc()">
+                </div>
+            </div>
+            <div class="input-box">
+                <div class="icon-badge">R</div>
+                <div class="input-content">
+                    <div class="input-label">ROAS</div>
+                    <input type="number" class="val-input" id="roas_val" value="6" placeholder="0" oninput="reCalc()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="section-header">
+            <span>Production (Parts)</span>
+            <span id="total-parts-cost" style="font-size:12px; color:var(--primary)">¥0.00</span>
+        </div>
+        
+        <div id="parts-container">
+            <div class="part-card" id="part-1">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; font-weight:700;">
+                    <span>零件 1</span><span class="p-cost-txt">¥0.00</span>
+                </div>
+                <div class="grid-2">
+                    <div class="input-box"><div class="input-content"><div class="input-label">一盘数量</div><input type="number" class="val-input p-qty" value="1" oninput="reCalc()"></div></div>
+                    <div class="input-box"><div class="input-content"><div class="input-label">后处理(分)</div><input type="number" class="val-input p-prep" value="1" oninput="reCalc()"></div></div>
+                    <div class="input-box"><div class="input-content"><div class="input-label">整盘重量(g)</div><input type="number" class="val-input p-weight" placeholder="0" oninput="reCalc()"></div></div>
+                    <div class="input-box"><div class="input-content"><div class="input-label">整盘耗时(h)</div><input type="number" class="val-input p-time" placeholder="0" oninput="reCalc()"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <button class="add-btn" onclick="addPart()">+ 添加零件 (Add Part)</button>
+
+        <div style="margin-top:15px; border-top:1px dashed var(--border); padding-top:15px;">
+            <div class="grid-2">
+                <div class="input-box" style="background:rgba(0,122,255,0.05); border:1px solid rgba(0,122,255,0.1)">
+                    <div class="icon-badge">A</div>
+                    <div class="input-content">
+                        <div class="input-label" data-i18n="assembly">组装人工(¥)</div>
+                        <input type="number" class="val-input" id="unit_assembly" value="0" placeholder="0" oninput="reCalc()">
+                    </div>
+                </div>
+                <div class="input-box" style="background:rgba(0,122,255,0.05); border:1px solid rgba(0,122,255,0.1)">
+                    <div class="icon-badge">P</div>
+                    <div class="input-content">
+                        <div class="input-label" data-i18n="pack">包装材料(¥)</div>
+                        <input type="number" class="val-input" id="unit_pack" value="0.5" oninput="reCalc()">
+                    </div>
+                </div>
+            </div>
+            <div class="input-box" style="margin-top:10px; background:rgba(255,149,0,0.1); border:1px solid rgba(255,149,0,0.2)">
+                <div class="icon-badge" style="background:#ff9500; color:#fff">F</div>
+                <div class="input-content">
+                    <div class="input-label" data-i18n="logistics">物流成本(¥)</div>
+                    <input type="number" class="val-input" id="unit_logistics" value="0" placeholder="0" oninput="reCalc()">
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top:15px; text-align:center; font-size:12px; color:var(--primary); cursor:pointer" onclick="toggleSet()">⚙️ Advanced Settings ▼</div>
+        <div id="adv-set" style="display:none; margin-top:10px; border-top:1px solid var(--border); padding-top:10px;">
+            <div class="grid-2">
+                <div class="input-box"><div class="input-content"><div class="input-label">耗材(¥/kg)</div><input type="number" class="val-input" id="s_mat" value="40" oninput="reCalc()"></div></div>
+                <div class="input-box"><div class="input-content"><div class="input-label">电价(¥/度)</div><input type="number" class="val-input" id="s_elec_price" value="1.0" oninput="reCalc()"></div></div>
+                <div class="input-box"><div class="input-content"><div class="input-label">机器功率(W)</div><input type="number" class="val-input" id="s_power" value="120" oninput="reCalc()"></div></div>
+                <div class="input-box"><div class="input-content"><div class="input-label">机器损耗(¥/h)</div><input type="number" class="val-input" id="s_mac" value="1.0" oninput="reCalc()"></div></div>
+                <div class="input-box"><div class="input-content"><div class="input-label">倍率</div><input type="number" class="val-input" id="s_multiplier" value="3" oninput="reCalc()"></div></div>
+                <div class="input-box"><div class="input-content"><div class="input-label">风险(%)</div><input type="number" class="val-input" id="s_risk" value="15" oninput="reCalc()"></div></div>
+                <input type="hidden" id="s_lab" value="20">
+            </div>
+            <div class="details-box">
+                <div class="d-row"><span>折后供货价</span><span id="txt_rev">¥0.00</span></div>
+                <div class="d-row"><span>广告支出</span><span id="txt_ad">¥0.00</span></div>
+                <div class="d-row"><span>生产总成本</span><span id="txt_hard">¥0.00</span></div>
+            </div>
+        </div>
+    </div>
+    <div style="height:20px"></div>
+</div>
+
+<div id="page-hist" class="container view-section">
+    <div style="text-align:center; padding:20px; color:var(--text-sub); display:none" id="no-history">暂无记录</div>
+    <div id="history-list"></div>
+</div>
+
+<div id="page-conv" class="container view-section">
+    <div class="card">
+        <div class="section-header">Unit Converter</div>
+        <div class="input-box" style="margin-bottom:10px">
+            <input type="number" id="c_v1" class="val-input" style="font-size:24px" oninput="doConv('1')">
+            <select id="c_u1" class="val-input" style="width:60px; text-align:right" onchange="doConv('1')">
+                <option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option><option value="inch">in</option><option value="ft">ft</option>
+            </select>
+        </div>
+        <div style="text-align:center; color:var(--text-sub)">⇅</div>
+        <div class="input-box" style="margin-top:10px">
+            <input type="number" id="c_v2" class="val-input" style="font-size:24px; color:var(--primary)" oninput="doConv('2')">
+            <select id="c_u2" class="val-input" style="width:60px; text-align:right" onchange="doConv('1')">
+                <option value="inch" selected>in</option><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option><option value="ft">ft</option>
+            </select>
+        </div>
+    </div>
+</div>
+
+<div class="bottom-bar" id="calc-footer">
+    <div>
+        <div class="profit-label" data-i18n="profit_label">预估净利 (每单)</div>
+        <div style="display:flex; align-items:center">
+            <div class="profit-val" id="finalProfit">¥0.00</div>
+            <div class="margin-badge" id="marginBadge" style="display:none">0%</div>
+        </div>
+    </div>
+    <div id="statusTag" style="font-size:13px; font-weight:600; color:var(--text-sub)">就绪</div>
+</div>
+
+<script>
+// --- I18N ---
+let curLang = 'cn';
+const i18n = {
+    cn: {
+        country: "目标国家/币种", market_p: "前端售价", supply_p: "供货价",
+        discount: "折扣 (折)", logistics: "物流成本(¥)", assembly: "组装人工(¥)", pack: "包装材料(¥)",
+        profit_label: "预估净利 (每单)", ready: "就绪", profit: "✅ 盈利", loss: "❌ 亏损",
+        desc_auto: "19:00-06:00 自动深色", desc_manual: "手动控制开启"
+    },
+    en: {
+        country: "Target Market", market_p: "Retail Price", supply_p: "Supply Price",
+        discount: "Discount (Off)", logistics: "Freight(¥)", assembly: "Assembly(¥)", pack: "Packaging(¥)",
+        profit_label: "Est. Net Profit", ready: "Ready", profit: "✅ Profit", loss: "❌ Loss",
+        desc_auto: "Auto Dark 19:00-06:00", desc_manual: "Manual Control"
+    }
+};
+
+// --- Part Logic ---
+let partCount = 1;
+function addPart() {
+    partCount++;
+    const container = document.getElementById('parts-container');
+    const html = `
+    <div class="part-card" id="part-${partCount}">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; font-weight:700;">
+            <span>零件 ${partCount}</span>
+            <div style="display:flex; align-items:center">
+                <span class="p-cost-txt" style="margin-right:10px">¥0.00</span>
+                <span onclick="removePart(${partCount})" style="color:var(--danger); cursor:pointer">×</span>
+            </div>
+        </div>
+        <div class="grid-2">
+            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">一盘数量</div><input type="number" class="val-input p-qty" value="1" oninput="reCalc()"></div></div>
+            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">后处理(分)</div><input type="number" class="val-input p-prep" value="1" oninput="reCalc()"></div></div>
+            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">整盘重量(g)</div><input type="number" class="val-input p-weight" placeholder="0" oninput="reCalc()"></div></div>
+            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">整盘耗时(h)</div><input type="number" class="val-input p-time" placeholder="0" oninput="reCalc()"></div></div>
+        </div>
+    </div>`;
+    container.insertAdjacentHTML('beforeend', html);
+}
+function removePart(id) {
+    document.getElementById('part-'+id).remove();
+    reCalc();
+}
+
+// --- Theme & Rate Logic ---
+let themeState = 'auto';
+let rateMap={'USD':7.3,'EUR':7.7,'GBP':9.3,'JPY':0.048,'CAD':5.2,'AUD':4.7,'KRW':0.0052,'MXN':0.36};
+let symbolMap={'USD':'$','EUR':'€','GBP':'£','JPY':'¥','CAD':'C$','AUD':'A$','KRW':'₩','MXN':'Mex$'};
+let curRate=7.3; let activeMode='market';
+
+window.onload=function(){ 
+    initTheme(); 
+    fetchRates(); 
+    renderHistory(); // 强制初始化时检查历史记录
+    // 检测是否支持 localStorage
+    try {
+        localStorage.setItem('test', 'test');
+        localStorage.removeItem('test');
+    } catch(e) {
+        alert('警告：当前模式无法保存历史记录，请在 Safari 中打开并添加到主屏幕。');
+    }
+}
+
+function initTheme() { setThemeMode('auto'); setInterval(checkAutoTheme, 60000); }
+function setThemeMode(mode) {
+    themeState = mode;
+    document.getElementById('mode-auto').className = mode==='auto'?'segment-opt active':'segment-opt';
+    document.getElementById('mode-manual').className = mode==='manual'?'segment-opt active':'segment-opt';
+    const l=document.getElementById('color-light'), d=document.getElementById('color-dark');
+    const desc=document.getElementById('theme-desc');
+    if(mode==='auto') {
+        l.classList.add('disabled'); d.classList.add('disabled'); l.classList.remove('active'); d.classList.remove('active');
+        desc.innerText = i18n[curLang].desc_auto;
+        checkAutoTheme();
+    } else {
+        l.classList.remove('disabled'); d.classList.remove('disabled');
+        desc.innerText = i18n[curLang].desc_manual;
+    }
+}
+function checkAutoTheme() {
+    if(themeState!=='auto') return;
+    let h=new Date().getHours();
+    let isDark=(h>=19||h<6);
+    document.body.classList.toggle('dark-mode', isDark);
+}
+function setManualColor(c) {
+    if(themeState==='auto') return;
+    document.body.classList.toggle('dark-mode', c==='dark');
+    document.getElementById('color-light').classList.toggle('active', c==='light');
+    document.getElementById('color-dark').classList.toggle('active', c==='dark');
+}
+
+// --- Navigation ---
+function toggleDrawer() { document.querySelector('.drawer').classList.toggle('open'); document.querySelector('.drawer-overlay').classList.toggle('open'); }
+function switchPage(p) {
+    document.getElementById('page-calc').style.display='none';
+    document.getElementById('page-hist').style.display='none';
+    document.getElementById('page-conv').style.display='none';
+    document.getElementById('page-'+p).style.display='block';
+    
+    document.getElementById('menu-calc').classList.toggle('active-page', p==='calc');
+    document.getElementById('menu-hist').classList.toggle('active-page', p==='hist');
+    document.getElementById('menu-conv').classList.toggle('active-page', p==='conv');
+    
+    // 隐藏底部栏在历史和换算页
+    const footer = document.getElementById('calc-footer');
+    if(p==='calc') footer.style.display='flex'; else footer.style.display='none';
+    
+    if(p==='hist') renderHistory();
+    toggleDrawer();
+}
+function toggleLang() {
+    curLang=curLang==='cn'?'en':'cn';
+    let d=i18n[curLang];
+    document.querySelectorAll('[data-i18n]').forEach(e=>{ let k=e.getAttribute('data-i18n'); if(d[k]) e.innerText=d[k]; });
+    setThemeMode(themeState);
+}
+function toggleSet() { let el=document.getElementById('adv-set'); el.style.display=el.style.display==='none'?'block':'none'; }
+
+// --- Calc Logic ---
+async function fetchRates() {
+    document.getElementById('rateBtn').innerText = "...";
+    try {
+        let r=await fetch('https://open.er-api.com/v6/latest/CNY');
+        let d=await r.json();
+        if(d&&d.rates) Object.keys(rateMap).forEach(k=>{if(d.rates[k])rateMap[k]=1/d.rates[k]});
+        changeCurrency();
+        document.getElementById('rateBtn').innerText = "✓";
+        setTimeout(()=>document.getElementById('rateBtn').innerText = "↻ 汇率", 2000);
+    } catch(e) { document.getElementById('rateBtn').innerText = "⚠️"; }
+}
+function changeCurrency() {
+    let c=document.getElementById('cur').value; curRate=rateMap[c];
+    document.getElementById('sym_market').innerText=symbolMap[c]||'$';
+    reCalc();
+}
+function activateCard(m) {
+    activeMode=m;
+    document.getElementById('card-market').classList.toggle('active', m==='market');
+    document.getElementById('card-supply').classList.toggle('active', m==='supply');
+    if(m==='market') document.getElementById('inp_market').focus(); else document.getElementById('inp_supply').focus();
+}
+function calcFromMarket() {
+    if(activeMode!=='market') activateCard('market');
+    let m=parseFloat(document.getElementById('inp_market').value), mul=parseFloat(document.getElementById('s_multiplier').value)||3;
+    if(isNaN(m)) { document.getElementById('inp_supply').value=''; calculateAll(0); return; }
+    let s=(m*curRate)/mul;
+    document.getElementById('inp_supply').value=s.toFixed(2);
+    calculateAll(s);
+}
+function calcFromSupply() {
+    if(activeMode!=='supply') activateCard('supply');
+    let s=parseFloat(document.getElementById('inp_supply').value), mul=parseFloat(document.getElementById('s_multiplier').value)||3;
+    if(isNaN(s)) { document.getElementById('inp_market').value=''; calculateAll(0); return; }
+    let m=(s*mul)/curRate;
+    let c=document.getElementById('cur').value;
+    document.getElementById('inp_market').value = (c==='JPY'||c==='KRW') ? Math.round(m) : m.toFixed(2);
+    calculateAll(s);
+}
+function reCalc() { activeMode==='market' ? calcFromMarket() : calcFromSupply(); }
+
+function calculateAll(base) {
+    let zhe=parseFloat(document.getElementById('discount_zhe').value)||10;
+    let roas=parseFloat(document.getElementById('roas_val').value)||0;
+    let price_after=base*(zhe/10);
+    let ad_cost=roas>0?(price_after/roas):0;
+    let real_rev=price_after-ad_cost;
+
+    let p_mat=parseFloat(document.getElementById('s_mat').value)||40;
+    let p_elec=parseFloat(document.getElementById('s_elec_price').value)||1;
+    let p_pow=parseFloat(document.getElementById('s_power').value)||120;
+    let p_mac=parseFloat(document.getElementById('s_mac').value)||1.0;
+    let p_lab=parseFloat(document.getElementById('s_lab').value)||20;
+    let p_risk=parseFloat(document.getElementById('s_risk').value)||15;
+
+    // Multi-Part Logic
+    let total_parts_cost = 0;
+    document.querySelectorAll('.part-card').forEach(p => {
+        let qty = parseFloat(p.querySelector('.p-qty').value)||1;
+        let w = parseFloat(p.querySelector('.p-weight').value)||0;
+        let t = parseFloat(p.querySelector('.p-time').value)||0;
+        let prep = parseFloat(p.querySelector('.p-prep').value)||0;
+
+        let c_mat = (w/qty)*(p_mat/1000)*1.1;
+        let c_elec = (t*(p_pow/1000)*p_elec)/qty;
+        let c_mac = (t*p_mac)/qty;
+        let c_prep = (prep/60)*p_lab;
+        
+        let unit_cost = c_mat + c_elec + c_mac + c_prep;
+        p.querySelector('.p-cost-txt').innerText = '¥'+unit_cost.toFixed(2);
+        total_parts_cost += unit_cost;
+    });
+    
+    document.getElementById('total-parts-cost').innerText = '¥'+total_parts_cost.toFixed(2);
+
+    let u_ass=parseFloat(document.getElementById('unit_assembly').value)||0;
+    let u_pack=parseFloat(document.getElementById('unit_pack').value)||0;
+    let u_log=parseFloat(document.getElementById('unit_logistics').value)||0;
+
+    let hard_cost = total_parts_cost + u_ass + u_pack + u_log;
+    let safe_cost = hard_cost * (1 + p_risk/100);
+    let profit = real_rev - safe_cost;
+    
+    document.getElementById('txt_rev').innerText='¥'+real_rev.toFixed(2);
+    document.getElementById('txt_ad').innerText='-¥'+ad_cost.toFixed(2);
+    document.getElementById('txt_hard').innerText='¥'+hard_cost.toFixed(2);
+
+    let pEl=document.getElementById('finalProfit'), sEl=document.getElementById('statusTag'), mEl=document.getElementById('marginBadge');
+    pEl.innerText=(profit>0?'+':'')+'¥'+profit.toFixed(2);
+    pEl.style.color=profit>0?'var(--success)':'var(--danger)';
+
+    if(real_rev>0){
+        let m=(profit/real_rev)*100;
+        mEl.style.display='inline-block'; mEl.innerText=m.toFixed(1)+'%';
+        mEl.style.color=m>0?'#15803d':'#b91c1c'; mEl.style.background=m>0?'#dcfce7':'#fee2e2';
+    } else mEl.style.display='none';
+
+    if(base<=0){ sEl.innerText=i18n[curLang].ready; sEl.style.color='var(--text-sub)'; }
+    else if(profit>0){ sEl.innerText=i18n[curLang].profit; sEl.style.color='var(--success)'; }
+    else { sEl.innerText=i18n[curLang].loss; sEl.style.color='var(--danger)'; }
+}
+
+// --- History Logic ---
+function saveRecord() {
+    let name = document.getElementById('prod_name').value || '未命名产品';
+    let data = {
+        id: Date.now(),
+        name: name,
+        date: new Date().toLocaleString(),
+        profit: document.getElementById('finalProfit').innerText,
+        cur: document.getElementById('cur').value,
+        market_p: document.getElementById('inp_market').value,
+        parts: Array.from(document.querySelectorAll('.part-card')).map(p=>({
+            qty: p.querySelector('.p-qty').value,
+            prep: p.querySelector('.p-prep').value,
+            w: p.querySelector('.p-weight').value,
+            t: p.querySelector('.p-time').value
+        })),
+        inputs: {
+            supply: document.getElementById('inp_supply').value,
+            disc: document.getElementById('discount_zhe').value,
+            roas: document.getElementById('roas_val').value,
+            ass: document.getElementById('unit_assembly').value,
+            pack: document.getElementById('unit_pack').value,
+            log: document.getElementById('unit_logistics').value
+        }
+    };
+    
+    let hist = JSON.parse(localStorage.getItem('farm_hist') || '[]');
+    hist.unshift(data);
+    localStorage.setItem('farm_hist', JSON.stringify(hist));
+    alert('已保存');
+}
+
+function renderHistory() {
+    let hist = JSON.parse(localStorage.getItem('farm_hist') || '[]');
+    let c = document.getElementById('history-list');
+    c.innerHTML = '';
+    if(hist.length===0) { document.getElementById('no-history').style.display='block'; return; }
+    document.getElementById('no-history').style.display='none';
+    
+    hist.forEach(item => {
+        let div = document.createElement('div');
+        div.className = 'history-item';
+        div.onclick = (e) => { if(!e.target.classList.contains('btn-del')) loadRecord(item); };
+        div.innerHTML = `
+            <div class="btn-del" onclick="delRecord(${item.id})">🗑️</div>
+            <div class="hist-top"><div class="hist-name">${item.name}</div><div class="hist-profit" style="color:${item.profit.includes('+')?'var(--success)':'var(--danger)'}">${item.profit}</div></div>
+            <div class="hist-date">${item.date}</div>
+            <div class="hist-grid" style="margin-top:8px">
+                <div>售价: ${item.market_p} ${item.cur}</div>
+                <div>零件数: ${item.parts.length}</div>
+            </div>
+        `;
+        c.appendChild(div);
+    });
+}
+
+function loadRecord(item) {
+    document.getElementById('prod_name').value = item.name;
+    document.getElementById('cur').value = item.cur;
+    changeCurrency(); 
+    document.getElementById('inp_market').value = item.market_p;
+    
+    document.getElementById('inp_supply').value = item.inputs.supply;
+    document.getElementById('discount_zhe').value = item.inputs.disc;
+    document.getElementById('roas_val').value = item.inputs.roas;
+    document.getElementById('unit_assembly').value = item.inputs.ass;
+    document.getElementById('unit_pack').value = item.inputs.pack;
+    document.getElementById('unit_logistics').value = item.inputs.log;
+    
+    document.getElementById('parts-container').innerHTML = '';
+    partCount = 0;
+    item.parts.forEach(p => {
+        addPart();
+        let card = document.getElementById('part-'+partCount);
+        card.querySelector('.p-qty').value = p.qty;
+        card.querySelector('.p-prep').value = p.prep;
+        card.querySelector('.p-weight').value = p.w;
+        card.querySelector('.p-time').value = p.t;
+    });
+    
+    calcFromMarket();
+    switchPage('calc');
+}
+
+function delRecord(id) {
+    if(!confirm('确定删除?')) return;
+    let hist = JSON.parse(localStorage.getItem('farm_hist') || '[]');
+    hist = hist.filter(i => i.id !== id);
+    localStorage.setItem('farm_hist', JSON.stringify(hist));
+    renderHistory();
+}
+
+const f={mm:1,cm:10,m:1000,inch:25.4,ft:304.8};
+function doConv(d){
+    let v1=document.getElementById('c_v1'), u1=document.getElementById('c_u1').value;
+    let v2=document.getElementById('c_v2'), u2=document.getElementById('c_u2').value;
+    if(d==='1') v2.value=((v1.value*f[u1])/f[u2]).toFixed(3);
+    else v1.value=((v2.value*f[u2])/f[u1]).toFixed(3);
+}
+</script>
+</body>
+</html>
