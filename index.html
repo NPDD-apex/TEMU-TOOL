@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Farm OS v26.1</title>
+<title>Farm OS v26.2</title>
 <style>
 /* --- 1. 全局样式 --- */
 :root {
@@ -17,7 +17,7 @@
     --text-sub: #8e8e93;      
     --border: #e5e5ea;        
     --radius: 12px;
-    --drawer-bg: rgba(255, 255, 255, 0.95);
+    --drawer-bg: rgba(255, 255, 255, 0.98);
     --item-active: #f2f2f7;
     --icon-bg: #e0eaff; --icon-text: #007aff;
 }
@@ -30,7 +30,7 @@ body.dark-mode {
     --text-main: #f5f5f7;     
     --text-sub: #8e8e93;      
     --border: #38383a;        
-    --drawer-bg: rgba(28, 28, 30, 0.95);
+    --drawer-bg: rgba(28, 28, 30, 0.98);
     --item-active: #2c2c2e;
     --icon-bg: #2c2c2e; --icon-text: #0a84ff;
 }
@@ -51,10 +51,10 @@ body {
 .app-title { font-weight: 800; font-size: 18px; }
 .menu-icon { font-size: 24px; color: var(--primary); cursor: pointer; padding: 5px; }
 
-/* --- 3. 侧边菜单 --- */
+/* --- 3. 侧边菜单 (优化版) --- */
 .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 2000; display:none; backdrop-filter: blur(3px); transition: opacity 0.3s; }
 .drawer { 
-    position: fixed; top: 0; bottom: 0; left: 0; width: 280px; 
+    position: fixed; top: 0; bottom: 0; left: 0; width: 80%; max-width: 300px; /* 适配窄屏 */
     background: var(--drawer-bg); backdrop-filter: blur(20px);
     z-index: 2001; transform: translateX(-100%); transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); 
     padding: 20px; padding-top: max(20px, env(safe-area-inset-top));
@@ -79,6 +79,7 @@ body {
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 13px; font-weight: 700; color: var(--text-sub); letter-spacing: 0.5px; text-transform: uppercase; }
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
+/* 输入框 */
 .input-box { background: var(--bg-input); border-radius: 10px; padding: 10px; display: flex; align-items: center; gap: 10px; border: 1px solid transparent; }
 .input-box:focus-within { border-color: var(--primary); background: var(--bg-card); }
 .icon-badge { width: 28px; height: 28px; border-radius: 8px; background: var(--icon-bg); color: var(--icon-text); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; flex-shrink: 0; }
@@ -86,6 +87,11 @@ body {
 .input-label { font-size: 11px; color: var(--text-sub); margin-bottom: 2px; white-space: nowrap; }
 .val-input { border: none; background: transparent; width: 100%; font-size: 16px; font-weight: 600; color: var(--text-main); padding: 0; outline: none; }
 .currency-select { font-size: 16px; font-weight: 600; border: none; background: transparent; color: var(--primary); outline: none; width: 100%; }
+
+/* 时间输入组 (New) */
+.time-group { display: flex; align-items: center; gap: 5px; }
+.time-input { width: 40px; text-align: center; border: none; background: rgba(0,0,0,0.05); border-radius: 6px; padding: 4px; font-size: 14px; font-weight: 600; color: var(--text-main); }
+.time-sep { font-size: 12px; color: var(--text-sub); }
 
 /* 双向联动 */
 .dual-wrapper { display: flex; gap: 12px; margin-bottom: 12px; }
@@ -95,33 +101,23 @@ body {
 .dual-val { width: 100%; font-size: 24px; font-weight: 800; border: none; background: transparent; color: var(--text-main); outline: none; padding: 0; }
 .dual-card.active .dual-val { color: var(--primary); }
 
-/* --- 5. 历史记录列表 (修复重叠问题) --- */
+/* --- 5. 历史记录 (布局重构) --- */
 .history-item { 
-    background: var(--bg-card); 
-    border-radius: 12px; 
-    /* 关键修复：增加右侧内边距，给删除按钮留出空间 */
-    padding: 15px 50px 15px 15px; 
-    margin-bottom: 10px; 
-    box-shadow: 0 2px 5px rgba(0,0,0,0.03); 
-    cursor: pointer; 
-    position: relative; 
+    background: var(--bg-card); border-radius: 12px; padding: 15px; margin-bottom: 10px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03); cursor: pointer; display: flex; flex-direction: column;
 }
-.hist-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-.hist-name { font-size: 15px; font-weight: 700; color: var(--text-main); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hist-date { font-size: 11px; color: var(--text-sub); }
-.hist-grid { display: grid; grid-template-columns: 1fr 1fr; font-size: 12px; color: var(--text-sub); gap: 5px; }
-.btn-del { 
-    position: absolute; 
-    top: 50%; right: 10px; /* 垂直居中 */
-    transform: translateY(-50%);
-    color: var(--text-sub); 
-    padding: 10px; /* 增加点击热区 */
-    z-index: 2; 
-    font-size: 16px;
-    background: transparent;
-    border-radius: 50%;
+.hist-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+.hist-name { font-size: 16px; font-weight: 700; color: var(--text-main); }
+.hist-price { font-size: 16px; font-weight: 800; }
+.hist-meta { font-size: 11px; color: var(--text-sub); margin-bottom: 10px; }
+.hist-footer { display: flex; justify-content: space-between; align-items: flex-end; border-top: 1px solid var(--border); padding-top: 10px; }
+.hist-tag { font-size: 11px; background: var(--bg-input); padding: 3px 8px; border-radius: 4px; color: var(--text-sub); }
+
+/* 删除按钮 (右下角) */
+.btn-del-icon {
+    font-size: 18px; color: var(--text-sub); padding: 5px; cursor: pointer;
 }
-.btn-del:active { background: var(--bg-input); color: var(--danger); }
+.btn-del-icon:hover { color: var(--danger); }
 
 /* 保存栏 */
 .save-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 15px; }
@@ -150,7 +146,7 @@ body {
     <div class="menu-icon" onclick="toggleDrawer()">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
     </div>
-    <div class="app-title" id="pageTitle">Farm OS v26.1</div>
+    <div class="app-title" id="pageTitle">Farm OS v26.2</div>
     <div style="font-size:12px; font-weight:600; color:var(--primary)" onclick="fetchRates()" id="rateBtn">↻ 汇率</div>
 </div>
 
@@ -175,7 +171,7 @@ body {
     
     <div style="margin-top:auto;"></div>
     <div class="drawer-item" onclick="toggleLang()" style="border-top:1px solid var(--border); border-radius:0;"><span>🌐 切换语言 (CN/EN)</span></div>
-    <div style="font-size:11px; color:#999; text-align:center; padding:15px;">v26.1 UI Fix</div>
+    <div style="font-size:11px; color:#999; text-align:center; padding:15px;">v26.2 Time Split</div>
 </div>
 
 <div id="page-calc" class="container view-section active">
@@ -235,23 +231,12 @@ body {
 
     <div class="card">
         <div class="section-header">
-            <span>Production (Parts)</span>
+            <span>Production</span>
             <span id="total-parts-cost" style="font-size:12px; color:var(--primary)">¥0.00</span>
         </div>
         
         <div id="parts-container">
-            <div class="part-card" id="part-1">
-                <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; font-weight:700;">
-                    <span>零件 1</span><span class="p-cost-txt">¥0.00</span>
-                </div>
-                <div class="grid-2">
-                    <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">一盘数量</div><input type="number" class="val-input p-qty" value="1" oninput="reCalc()"></div></div>
-                    <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">后处理(分)</div><input type="number" class="val-input p-prep" value="1" oninput="reCalc()"></div></div>
-                    <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">整盘重量(g)</div><input type="number" class="val-input p-weight" placeholder="0" oninput="reCalc()"></div></div>
-                    <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">整盘耗时(h)</div><input type="number" class="val-input p-time" placeholder="0" oninput="reCalc()"></div></div>
-                </div>
             </div>
-        </div>
 
         <button class="add-btn" onclick="addPart()">+ 添加零件 (Add Part)</button>
 
@@ -294,7 +279,7 @@ body {
 </div>
 
 <div id="page-hist" class="container view-section">
-    <div style="text-align:center; padding:20px; color:var(--text-sub); display:none" id="no-history">暂无记录</div>
+    <div style="text-align:center; padding:20px; color:var(--text-sub); display:none" id="no-history">暂无记录 (请在 Safari 添加到主屏幕后使用)</div>
     <div id="history-list"></div>
 </div>
 
@@ -346,9 +331,9 @@ const i18n = {
     }
 };
 
-// --- Part Logic ---
-let partCount = 1;
-function addPart() {
+// --- Part Logic (New Time Split) ---
+let partCount = 0;
+function addPart(data) {
     partCount++;
     const container = document.getElementById('parts-container');
     const html = `
@@ -361,36 +346,34 @@ function addPart() {
             </div>
         </div>
         <div class="grid-2">
-            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">一盘数量</div><input type="number" class="val-input p-qty" value="1" oninput="reCalc()"></div></div>
-            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">后处理(分)</div><input type="number" class="val-input p-prep" value="1" oninput="reCalc()"></div></div>
-            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">整盘重量(g)</div><input type="number" class="val-input p-weight" placeholder="0" oninput="reCalc()"></div></div>
-            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">整盘耗时(h)</div><input type="number" class="val-input p-time" placeholder="0" oninput="reCalc()"></div></div>
+            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">一盘数量</div><input type="number" class="val-input p-qty" value="${data?data.qty:1}" oninput="reCalc()"></div></div>
+            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">后处理(分)</div><input type="number" class="val-input p-prep" value="${data?data.prep:1}" oninput="reCalc()"></div></div>
+            <div class="input-box" style="padding:8px"><div class="input-content"><div class="input-label">整盘重量(g)</div><input type="number" class="val-input p-weight" placeholder="0" value="${data?data.w:''}" oninput="reCalc()"></div></div>
+            <div class="input-box" style="padding:8px">
+                <div class="input-content">
+                    <div class="input-label">整盘耗时</div>
+                    <div class="time-group">
+                        <input type="number" class="time-input p-time-h" placeholder="时" value="${data?data.th:''}" oninput="reCalc()">
+                        <span class="time-sep">:</span>
+                        <input type="number" class="time-input p-time-m" placeholder="分" value="${data?data.tm:''}" oninput="reCalc()">
+                    </div>
+                </div>
+            </div>
         </div>
     </div>`;
     container.insertAdjacentHTML('beforeend', html);
+    reCalc();
 }
 function removePart(id) {
     document.getElementById('part-'+id).remove();
     reCalc();
 }
 
-// --- Init & Theme ---
-let themeState = 'auto';
-let rateMap={'USD':7.3,'EUR':7.7,'GBP':9.3,'JPY':0.048,'CAD':5.2,'AUD':4.7,'KRW':0.0052,'MXN':0.36};
-let symbolMap={'USD':'$','EUR':'€','GBP':'£','JPY':'¥','CAD':'C$','AUD':'A$','KRW':'₩','MXN':'Mex$'};
-let curRate=7.3; let activeMode='market';
+// --- Theme & Rate ---
+let themeState='auto'; let rateMap={'USD':7.3}; let curRate=7.3; let activeMode='market';
 
 document.addEventListener('DOMContentLoaded', function() {
-    initTheme(); 
-    fetchRates(); 
-    renderHistory();
-    // 检查是否支持 localStorage (隐私模式检测)
-    try {
-        localStorage.setItem('test', '1');
-        localStorage.removeItem('test');
-    } catch(e) {
-        alert('注意：当前为隐私模式，历史记录无法保存。请在 Safari 中点击“添加到主屏幕”以使用完整功能。');
-    }
+    initTheme(); fetchRates(); renderHistory(); addPart(); // Default 1 part
 });
 
 function initTheme() { setThemeMode('auto'); setInterval(checkAutoTheme, 60000); }
@@ -398,15 +381,13 @@ function setThemeMode(mode) {
     themeState = mode;
     document.getElementById('mode-auto').className = mode==='auto'?'segment-opt active':'segment-opt';
     document.getElementById('mode-manual').className = mode==='manual'?'segment-opt active':'segment-opt';
-    const l=document.getElementById('color-light'), d=document.getElementById('color-dark');
-    const desc=document.getElementById('theme-desc');
     if(mode==='auto') {
-        l.classList.add('disabled'); d.classList.add('disabled'); l.classList.remove('active'); d.classList.remove('active');
-        desc.innerText = i18n[curLang].desc_auto;
+        document.getElementById('color-light').classList.add('disabled');
+        document.getElementById('color-dark').classList.add('disabled');
         checkAutoTheme();
     } else {
-        l.classList.remove('disabled'); d.classList.remove('disabled');
-        desc.innerText = i18n[curLang].desc_manual;
+        document.getElementById('color-light').classList.remove('disabled');
+        document.getElementById('color-dark').classList.remove('disabled');
     }
 }
 function checkAutoTheme() {
@@ -425,18 +406,14 @@ function setManualColor(c) {
 // --- Navigation ---
 function toggleDrawer() { document.querySelector('.drawer').classList.toggle('open'); document.querySelector('.drawer-overlay').classList.toggle('open'); }
 function switchPage(p) {
-    document.getElementById('page-calc').style.display='none';
-    document.getElementById('page-hist').style.display='none';
-    document.getElementById('page-conv').style.display='none';
+    document.querySelectorAll('.view-section').forEach(el=>el.style.display='none');
     document.getElementById('page-'+p).style.display='block';
     
     document.getElementById('menu-calc').classList.toggle('active-page', p==='calc');
     document.getElementById('menu-hist').classList.toggle('active-page', p==='hist');
     document.getElementById('menu-conv').classList.toggle('active-page', p==='conv');
     
-    const footer = document.getElementById('calc-footer');
-    if(p==='calc') footer.style.display='flex'; else footer.style.display='none';
-    
+    document.getElementById('calc-footer').style.display = p==='calc'?'flex':'none';
     if(p==='hist') renderHistory();
     toggleDrawer();
 }
@@ -450,19 +427,22 @@ function toggleSet() { let el=document.getElementById('adv-set'); el.style.displ
 
 // --- Calc Logic ---
 async function fetchRates() {
-    document.getElementById('rateBtn').innerText = "...";
     try {
         let r=await fetch('https://open.er-api.com/v6/latest/CNY');
         let d=await r.json();
-        if(d&&d.rates) Object.keys(rateMap).forEach(k=>{if(d.rates[k])rateMap[k]=1/d.rates[k]});
-        changeCurrency();
-        document.getElementById('rateBtn').innerText = "✓";
-        setTimeout(()=>document.getElementById('rateBtn').innerText = "↻ 汇率", 2000);
+        if(d&&d.rates) {
+            let map={'USD':7.3,'EUR':7.7,'GBP':9.3,'JPY':0.048,'CAD':5.2,'AUD':4.7,'KRW':0.0052,'MXN':0.36};
+            Object.keys(map).forEach(k=>{if(d.rates[k])map[k]=1/d.rates[k]});
+            rateMap = map;
+            changeCurrency();
+            document.getElementById('rateBtn').innerText = "✓";
+        }
     } catch(e) { document.getElementById('rateBtn').innerText = "⚠️"; }
 }
 function changeCurrency() {
-    let c=document.getElementById('cur').value; curRate=rateMap[c];
-    document.getElementById('sym_market').innerText=symbolMap[c]||'$';
+    let c=document.getElementById('cur').value; curRate=rateMap[c]||7.3;
+    let sMap={'USD':'$','EUR':'€','GBP':'£','JPY':'¥','CAD':'C$','AUD':'A$','KRW':'₩','MXN':'Mex$'};
+    document.getElementById('sym_market').innerText=sMap[c]||'$';
     reCalc();
 }
 function activateCard(m) {
@@ -508,8 +488,12 @@ function calculateAll(base) {
     document.querySelectorAll('.part-card').forEach(p => {
         let qty = parseFloat(p.querySelector('.p-qty').value)||1;
         let w = parseFloat(p.querySelector('.p-weight').value)||0;
-        let t = parseFloat(p.querySelector('.p-time').value)||0;
         let prep = parseFloat(p.querySelector('.p-prep').value)||0;
+        
+        // Time Calc
+        let th = parseFloat(p.querySelector('.p-time-h').value)||0;
+        let tm = parseFloat(p.querySelector('.p-time-m').value)||0;
+        let t = th + (tm/60); // Total hours
 
         let c_mat = (w/qty)*(p_mat/1000)*1.1;
         let c_elec = (t*(p_pow/1000)*p_elec)/qty;
@@ -550,11 +534,9 @@ function calculateAll(base) {
     else { sEl.innerText=i18n[curLang].loss; sEl.style.color='var(--danger)'; }
 }
 
-// --- History Logic ---
+// --- History Logic (Updated) ---
 function saveRecord() {
     let name = document.getElementById('prod_name').value || '未命名';
-    if(name === '未命名' && !confirm('未输入产品名，确认保存？')) return;
-    
     let data = {
         id: Date.now(),
         name: name,
@@ -566,7 +548,8 @@ function saveRecord() {
             qty: p.querySelector('.p-qty').value,
             prep: p.querySelector('.p-prep').value,
             w: p.querySelector('.p-weight').value,
-            t: p.querySelector('.p-time').value
+            th: p.querySelector('.p-time-h').value, // save H
+            tm: p.querySelector('.p-time-m').value  // save M
         })),
         inputs: {
             supply: document.getElementById('inp_supply').value,
@@ -594,14 +577,19 @@ function renderHistory() {
     hist.forEach(item => {
         let div = document.createElement('div');
         div.className = 'history-item';
-        div.onclick = (e) => { if(!e.target.classList.contains('btn-del')) loadRecord(item); };
+        // 绑定点击事件，排除删除按钮
+        div.onclick = (e) => { if(!e.target.classList.contains('btn-del-icon')) loadRecord(item); };
+        
         div.innerHTML = `
-            <div class="btn-del" onclick="delRecord(${item.id})">🗑️</div>
-            <div class="hist-top"><div class="hist-name">${item.name}</div><div class="hist-profit" style="color:${item.profit.includes('+')?'var(--success)':'var(--danger)'}">${item.profit}</div></div>
-            <div class="hist-date">${item.date}</div>
-            <div class="hist-grid" style="margin-top:8px">
-                <div>售价: ${item.market_p} ${item.cur}</div>
-                <div>零件数: ${item.parts.length}</div>
+            <div class="hist-header">
+                <div class="hist-name">${item.name}</div>
+                <div class="hist-price" style="color:${item.profit.includes('+')?'var(--success)':'var(--danger)'}">${item.profit}</div>
+            </div>
+            <div class="hist-meta">${item.date}</div>
+            <div class="hist-footer">
+                <div class="hist-tag">${item.market_p} ${item.cur}</div>
+                <div class="hist-tag">零件: ${item.parts?item.parts.length:1}</div>
+                <div class="btn-del-icon" onclick="delRecord(${item.id})">🗑️</div>
             </div>
         `;
         c.appendChild(div);
@@ -625,19 +613,10 @@ function loadRecord(item) {
     
     document.getElementById('parts-container').innerHTML = '';
     partCount = 0;
-    if(item.parts) {
-        item.parts.forEach(p => {
-            addPart();
-            let card = document.getElementById('part-'+partCount);
-            if(card) {
-                card.querySelector('.p-qty').value = p.qty;
-                card.querySelector('.p-prep').value = p.prep;
-                card.querySelector('.p-weight').value = p.w;
-                card.querySelector('.p-time').value = p.t;
-            }
-        });
+    if(item.parts && item.parts.length > 0) {
+        item.parts.forEach(p => addPart(p));
     } else {
-        addPart(); // Fallback for old data
+        addPart(); // Fallback
     }
     
     calcFromMarket();
